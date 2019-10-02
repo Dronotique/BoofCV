@@ -55,6 +55,7 @@ public class DetectUserActions {
 		} else {
 			if( ++numMissed > 5 ) {
 				previous.reset();
+				System.out.println("previous.reset()");
 				stationaryStart = System.currentTimeMillis();
 			}
 		}
@@ -62,6 +63,8 @@ public class DetectUserActions {
 
 	public double checkStationary( ) {
 		if( previous.size() != points.size() ) {
+			System.out.println("previous.size() : " + previous.size());
+			System.out.println("points.size() : " + points.size());
 			previous.setTo(points);
 			first.setTo(points);
 			stationaryStart = System.currentTimeMillis();
@@ -72,8 +75,12 @@ public class DetectUserActions {
 
 			previous.setTo(points);
 			if( averagePrev > thresholdDistance || averageFirst > thresholdDistance*10 ) {
+				System.out.println("averagePrev : " + averagePrev);
+				System.out.println("averageFirst : " + averageFirst);
 				stationaryStart = System.currentTimeMillis();
 				first.setTo(points);
+			}else {
+				System.out.println("toto");
 			}
 			return (System.currentTimeMillis()-stationaryStart)/1000.0;
 		}

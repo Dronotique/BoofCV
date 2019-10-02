@@ -21,6 +21,7 @@ package boofcv.app;
 import boofcv.abst.fiducial.calib.ConfigGridDimen;
 import boofcv.app.calib.CalibrationModelPanel;
 import boofcv.app.calib.CalibrationTargetPanel;
+import boofcv.app.mjpeg.OpenMjpegCamDialog;
 import boofcv.factory.fiducial.FactoryFiducialCalibration;
 import boofcv.gui.BoofSwingUtil;
 import boofcv.gui.RenderCalibrationTargetsGraphics2D;
@@ -145,6 +146,16 @@ public class CameraCalibrationGui extends JPanel
 				openWebcam();
 			}
 		});
+		
+		JMenuItem menuMjpegCam = new JMenuItem("Input MJPEG stream");
+		BoofSwingUtil.setMenuItemKeys(menuMjpegCam,KeyEvent.VK_M,KeyEvent.VK_M);
+		menuMjpegCam.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				openMjpegCam();
+			}
+		});
+		
 
 		JMenuItem menuHelp = new JMenuItem("Help", KeyEvent.VK_H);
 		menuHelp.addActionListener(new ActionListener() {
@@ -166,6 +177,7 @@ public class CameraCalibrationGui extends JPanel
 		menu.addSeparator();
 		menu.add(menuOpenDirectory);
 		menu.add(menuWebcam);
+		menu.add(menuMjpegCam);
 		menu.add(menuHelp);
 		menu.add(menuQuit);
 
@@ -195,6 +207,26 @@ public class CameraCalibrationGui extends JPanel
 		}
 	}
 
+	private void openMjpegCam() {
+		OpenMjpegCamDialog.Selection s = OpenMjpegCamDialog.showDialog(null);
+
+		if(s != null ) {
+			app.inputType = BaseStandardInputApp.InputType.MJPEG;
+			app.camUrl = s.url;
+			app.desiredWidth = s.width;
+			app.desiredHeight = s.height;
+			createDetector();
+			frame.setVisible(false);
+
+			new Thread() {
+				public void run() {
+					app.process();
+				}
+			}.start();
+		}
+	}
+
+	
 	private void processDirectory() {
 		Preferences prefs;
 		prefs = Preferences.userRoot().node(this.getClass().getSimpleName());

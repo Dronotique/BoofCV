@@ -24,6 +24,7 @@ import boofcv.abst.geo.calibration.DetectorFiducialCalibration;
 import boofcv.app.calib.AssistedCalibration;
 import boofcv.app.calib.AssistedCalibrationGui;
 import boofcv.app.calib.ComputeGeometryScore;
+import boofcv.app.mjpeg.MjpegLiveViewCameraSimpleImpl;
 import boofcv.factory.fiducial.FactoryFiducialCalibration;
 import boofcv.gui.BoofSwingUtil;
 import boofcv.gui.calibration.CalibratedPlanarPanel;
@@ -47,6 +48,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -342,6 +345,10 @@ public class CameraCalibration extends BaseStandardInputApp {
 			case WEBCAM:
 				handleWebcam();
 				break;
+				
+			case MJPEG:
+				handleWebMjpeg();
+				break;
 
 			default:
 				printHelp();
@@ -571,6 +578,72 @@ public class CameraCalibration extends BaseStandardInputApp {
 			}
 		}
 		webcam.close();
+		if( assisted.isFinished() ) {
+			frame.setVisible(false);
+
+			inputDirectory = new File(OUTPUT_DIRECTORY, IMAGE_DIRECTORY).getPath();
+			outputFileName = new File(OUTPUT_DIRECTORY, "intrinsic.yaml").getPath();
+			handleDirectory();
+		}
+	}
+	
+	/**
+	 * Captures calibration data live using a webcam and a GUI to assist the user
+	 */
+	public void handleWebMjpeg() {
+		
+		ComputeGeometryScore quality = new ComputeGeometryScore(zeroSkew,detector.getLayout());
+		AssistedCalibrationGui gui = new AssistedCalibrationGui(new Dimension(desiredWidth, desiredHeight));
+		JFrame frame = ShowImages.showWindow(gui, "HTTP MJPEG Calibration", true);
+
+		GrayF32 gray = new GrayF32(desiredWidth,desiredHeight);
+
+		if( desiredWidth > 0 && desiredHeight > 0 ) {
+			if (gray.width != desiredWidth || gray.height != desiredHeight )
+				System.err.println("Actual camera resolution does not match desired.  Actual: "+gray.width+" "+gray.height+
+				"  Desired: "+desiredWidth+" "+desiredHeight);
+		}
+		
+		AssistedCalibration assisted = new AssistedCalibration(detector,quality,gui,OUTPUT_DIRECTORY, IMAGE_DIRECTORY);
+		assisted.init(gray.width,gray.height);
+
+		MjpegLiveViewCameraSimpleImpl mjpegCam;
+		try {
+			mjpegCam = new MjpegLiveViewCameraSimpleImpl(new URL("http://localhost:8080"));
+			try {
+				mjpegCam.startLiveView();
+				Thread.sleep(2000);
+				
+				BufferedImage image;
+				long lastFrameNum = -1;
+				while(true) {
+					if(mjpegCam.getFrameNum() != lastFrameNum) {
+						lastFrameNum = mjpegCam.getFrameNum();
+						if((image = mjpegCam.getNextBufferedImage()) != null && !assisted.isFinished()) {
+							ConvertBufferedImage.convertFrom(image, gray);
+		
+							try {
+								assisted.process(gray,image);
+							} catch( RuntimeException e ) {
+								System.err.println("BUG!!! saving image to crash_image.png");
+								UtilImageIO.saveImage(image, "crash_image.png");
+								throw e;
+							}
+						}else {
+							break;
+						}
+					}else {
+						Thread.sleep(10);
+					}
+				}
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		} catch (MalformedURLException e1) {
+			e1.printStackTrace(System.err);
+		}
+		
 		if( assisted.isFinished() ) {
 			frame.setVisible(false);
 

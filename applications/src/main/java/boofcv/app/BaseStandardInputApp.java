@@ -31,6 +31,8 @@ public class BaseStandardInputApp {
 	protected String cameraName = null;
 	protected int desiredWidth=-1,desiredHeight=-1;
 
+	protected String camUrl = null;
+	
 	protected String filePath;
 
 	protected String flagName;
@@ -52,6 +54,10 @@ public class BaseStandardInputApp {
 		System.out.println("Video Input:");
 		System.out.println();
 		System.out.println("  --VideoFile=<path>                 Path to video file");
+		System.out.println();
+		System.out.println("Mjpeg Input:");
+		System.out.println();
+		System.out.println("  --mjpeg=<http://url:port>                 URL to mjpeg STream");
 	}
 
 	protected boolean checkCameraFlag( String argument ) {
@@ -72,6 +78,10 @@ public class BaseStandardInputApp {
 		} else if( flagName.compareToIgnoreCase("videoFile") == 0 ) {
 			inputType = InputType.VIDEO;
 			filePath = parameters;
+			return true;
+		} else if( flagName.compareToIgnoreCase("mjpeg") == 0 ) {
+			inputType = InputType.MJPEG;
+			camUrl = parameters;
 			return true;
 		} else if( flagName.compareToIgnoreCase("Resolution") == 0 ) {
 			String words[] = parameters.split(":");
@@ -122,6 +132,7 @@ public class BaseStandardInputApp {
 	enum InputType {
 		WEBCAM,
 		IMAGE,
-		VIDEO
+		VIDEO,
+		MJPEG
 	}
 }
